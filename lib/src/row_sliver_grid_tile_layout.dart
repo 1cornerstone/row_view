@@ -6,7 +6,9 @@ import 'package:flutter/rendering.dart';
 
   @override
   double computeMaxScrollOffset(int childCount) {
-    // TODO: implement computeMaxScrollOffset
+    if(childCount <= 0){
+     return 0.0;
+    }
     throw UnimplementedError();
   }
 
