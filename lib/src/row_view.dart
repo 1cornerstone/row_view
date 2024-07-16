@@ -1,92 +1,18 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/src/rendering/sliver.dart';
 import 'package:flutter/src/rendering/sliver_grid.dart';
-import 'package:row_view/src/row_sliver_grid_tile_layout.dart';
+import 'package:row_view/src/row_view_sliver_grid_tile_layout.dart';
 
-//
-// class RowView extends StatefulWidget {
-//
-//   final ScrollPhysics? physics;
-//   final ScrollController? controller;
-//   final double mainAxisSpacing;
-//   final double crossAxisSpacing;
-//   final String? restorationId;
-//   final ScrollController? scrollController;
-//   final List<Widget> children;
-//
-//   const RowView({
-//     this.controller,
-//     super.key, this.physics,
-//     this.children = const [],
-//     this.mainAxisSpacing = 0.0,
-//     this.crossAxisSpacing = 0.0,
-//     this.scrollController,
-//     this.restorationId,
-//   });
-//
-//   @override
-//   State<RowView> createState() => _RowViewState();
-// }
-//
-// class _RowViewState extends State<RowView> {
-//
-//
-//   @override
-//   Widget build(BuildContext context) {
-//
-//     return LayoutBuilder(
-//         builder: (builder, constraint){
-//           return CustomMultiChildLayout(
-//               delegate: RowViewMultiChildLayoutDelegate(
-//                 actualWidth: MediaQuery.sizeOf(context).width,
-//                 constraint: constraint
-//               ),
-//               children: widget.children.map((child) => LayoutId(
-//                   id: UniqueKey(),
-//                   child: child)).toList()
-//           );
-//         });
-//   }
-// }
-//
-//
-// // get remaining width value
-// // calculate width occupied by widget
-// // Calculate width to occupied by child using ((itemPerAxis specified || ) * (get padding left + child width))
-// // render
-//
-// class RowViewMultiChildLayoutDelegate extends MultiChildLayoutDelegate {
-//   // constraint for child to occupied,
-//   final BoxConstraints constraint;
-//   final double actualWidth;
-//   RowViewMultiChildLayoutDelegate({ required this.actualWidth, required this.constraint});
-//
-//   // @override
-//   // Size getSize(BoxConstraints constraints) {
-//   //   // TODO: implement getSize
-//   //   return super.getSize(constraints);
-//   // }
-//
-//   @override
-//   void performLayout(Size size) {
-//     /// This [size] gives me the detail of box constraint i am to work with.
-//   }
-//
-//   @override
-//   bool shouldRelayout(covariant MultiChildLayoutDelegate oldDelegate) {
-//     // TODO: implement shouldRelayout
-//     throw UnimplementedError();
-//   }
-// }
-//
-//
-//
+
+
+
 
 class RowView extends BoxScrollView {
 
-  final SliverGridDelegate gridDelegate;
+  final RowViewSliverGridDelegateWithFixedMainAxisCount gridDelegate;
   final SliverChildDelegate childrenDelegate;
-  final int mainAxisCount;
 
   RowView({
     super.key,
@@ -95,11 +21,10 @@ class RowView extends BoxScrollView {
     super.physics,
     super.padding,
     super.scrollDirection = Axis.horizontal,
-    required this.mainAxisCount,
     required this.gridDelegate,
     required NullableIndexedWidgetBuilder itemBuilder,
     int? itemCount,
-  }) : childrenDelegate = RowSliverChildBuilderDelegate(
+  }) : childrenDelegate = RowViewSliverChildBuilderDelegate(
       itemBuilder,
     childCount: itemCount
   );
@@ -113,11 +38,10 @@ class RowView extends BoxScrollView {
 }
 
 
-
-class RowSliverChildBuilderDelegate extends SliverChildDelegate{
+class RowViewSliverChildBuilderDelegate extends SliverChildDelegate{
   final int? childCount;
   final NullableIndexedWidgetBuilder builder;
-  RowSliverChildBuilderDelegate(this.builder, {this.childCount});
+  RowViewSliverChildBuilderDelegate(this.builder, {this.childCount});
 
   @override
   int? get estimatedChildCount => childCount;
@@ -150,32 +74,59 @@ class RowSliverChildBuilderDelegate extends SliverChildDelegate{
 
 }
 
+class RowViewSliverGridDelegateWithFixedMainAxisCount extends SliverGridDelegate{
 
-class RowSliverGridDelegateWithFixedMainAxisCount extends SliverGridDelegate{
+  RowViewSliverGridDelegateWithFixedMainAxisCount({
+    this.crossAxisExtent,
+    this.crossAxisSpacing = 0.0,
+    this.mainAxisSpacing =0.0,
+    required this.mainAxisCount,
+    required this.mainAxisHeight,
+  });
+
+  /// The number of tiles in main axis
   final int mainAxisCount;
-  final double aspectRatio;
+  /// The number of logical pixel between each child along cross axis
   final double crossAxisSpacing;
+  /// The number of logical pixel between each child along main axis
   final double mainAxisSpacing;
-  RowSliverGridDelegateWithFixedMainAxisCount({
-    this.aspectRatio =1 , this.crossAxisSpacing = 0, this.mainAxisSpacing =0,
-    required this.mainAxisCount});
+
+  final double? crossAxisExtent;
+
+  /// main axis height
+  final double mainAxisHeight;
 
   @override
   SliverGridLayout getLayout(SliverConstraints constraints) {
-    //
-    return RowSliverGridTileLayout();
+    /// Validate if main axis height is set
+    assert(mainAxisHeight > 0, 'main axis height error');
+    /// Calculate the actual usable space on main axis(y-axis)
+    final double usableMainAxisExtent = math.max(
+      0.0,
+      mainAxisHeight - mainAxisSpacing * (mainAxisCount - 1),
+    );
+    /// Divide the usableMainAxisExtent by number of tiles on main axis
+    final double childMainAxisExtent = usableMainAxisExtent / mainAxisCount;
+    /// use the passed crossAxisExtent value or main axis value
+    final double childCrossAxisExtent = crossAxisExtent ?? childMainAxisExtent;
+    return RowSliverGridTileLayout(
+      mainAxisCount: mainAxisCount,
+      crossAxisStride: childCrossAxisExtent + crossAxisSpacing, ///
+      mainAxisStride: childMainAxisExtent + mainAxisSpacing,
+      childCrossAxisExtent: childCrossAxisExtent,
+      childMainAxisExtent: childMainAxisExtent,
+    );
   }
 
   /// subject to change only if any data change
   @override
-  bool shouldRelayout(RowSliverGridDelegateWithFixedMainAxisCount oldDelegate) {
+  bool shouldRelayout(RowViewSliverGridDelegateWithFixedMainAxisCount oldDelegate) {
     return oldDelegate.crossAxisSpacing != crossAxisSpacing
           || oldDelegate.mainAxisSpacing != mainAxisSpacing
-          || oldDelegate.aspectRatio != crossAxisSpacing
+          // || oldDelegate.aspectRatio != crossAxisSpacing
           || oldDelegate.mainAxisCount != mainAxisCount;
   }
 }
-
 
 
 Widget _createErrorWidget(Object exception, StackTrace stackTrace) {

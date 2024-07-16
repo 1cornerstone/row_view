@@ -1,3 +1,5 @@
 library row_view;
 
-export  'package:row_view/row_view.dart';
+export  'src/row_view.dart';
+export 'src/row_view_sliver_grid_tile_layout.dart';
+

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:row_view/row_view.dart';
 
 void main() {
   runApp(const MyApp());
@@ -33,27 +34,31 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: Scaffold(
-        body: SizedBox(
-          height: 200,
-          child: GridView.count(
-              scrollDirection: Axis.horizontal,
-              crossAxisCount: 2,
-              children: List.generate(30, (index) {
-                return Container(
-                  color: Colors.blue,
-                  margin: const EdgeInsets.all(10),
-                  child: Center(
-                    child: Text(
-                      'Item $index',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
+        body:   Center(
+          child: SizedBox(
+            height: 400,
+            child: RowView(
+                itemCount: 30,
+                gridDelegate: RowViewSliverGridDelegateWithFixedMainAxisCount(
+                    mainAxisCount: 3, // number of items in each row
+                    mainAxisSpacing: 3.0, // spacing between rows
+                    crossAxisSpacing: 3.0, // spacing between columns
+                    mainAxisHeight: 400
+                ),
+                itemBuilder: (itemBuilder, index){
+                  return Container(
+                    color: Colors.blue,
+                    child: Center(
+                      child: Text(
+                        'Item $index',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-              )
+                  );
+                }),
           ),
         ),
       )
